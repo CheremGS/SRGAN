@@ -1,0 +1,27 @@
+# dataset params
+data_path_train: C:\Users\chere\PycharmProjects\datas\super_res\train
+train_in_dir: low_res
+train_out_dir: high_res
+
+image_super_resolution: 256
+image_base_resolution: 128
+
+# train parameters
+save_every: 20
+start_epoch: 0
+epochs: 1000
+batch_size: 16
+lr: 0.001
+workers: 4
+accumulation_steps: 2
+checkpoint_steps: 10
+
+# model hyperparams
+upscale_factor: 2
+n_blocks: 16
+
+# device params
+device: 'cuda'
+deterministic: True
+parallel: False
+amp: True
