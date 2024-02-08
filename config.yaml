@@ -6,22 +6,32 @@ train_out_dir: high_res
 image_super_resolution: 256
 image_base_resolution: 128
 
-# train parameters
-save_every: 20
+# model train parameters
 start_epoch: 0
-epochs: 1000
-batch_size: 16
-lr: 0.001
+epochs: 100
+batch_size: 2
 workers: 4
-accumulation_steps: 2
+accumulation_steps: 3
 checkpoint_steps: 10
+
+# optim hyperparameters
+opt_algo: "AdamW"
+lr: 0.001
+weight_decay: 0.00001
+momentum: 0.9
 
 # model hyperparams
 upscale_factor: 2
 n_blocks: 16
+beta: 0.1
+num_vgg_layer_mse: 35
 
 # device params
 device: 'cuda'
-deterministic: True
+deterministic: False
 parallel: False
 amp: True
+
+
+
+

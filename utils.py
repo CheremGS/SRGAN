@@ -1,9 +1,21 @@
 import yaml
 import os
 import cv2
+import torch
 import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+
+
+def global_seed(determ: bool = False) -> None:
+    SEED = torch.initial_seed()%2**32
+    torch.manual_seed(SEED)
+    if determ:
+        torch.backends.cudnn.benchmark = False
+        torch.use_deterministic_algorithms(True)
+    else:
+        torch.backends.cudnn.benchmark = True
+        torch.use_deterministic_algorithms(False)
 
 
 def yaml_read(yaml_path: str = './config.yaml') -> dict:
