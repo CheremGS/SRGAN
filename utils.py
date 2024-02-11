@@ -1,10 +1,51 @@
 import yaml
 import os
 import cv2
+import gc
 import torch
 import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import matplotlib.pyplot as plt
+
+
+def custom_save_model(save_state: dict, model_name: str) -> None:
+    """Save torch model and del cache"""
+    print('Generator backbone train is over')
+    if save_state is not None:
+        print(f'Model was saved in {model_name}')
+        try:
+            torch.save(save_state, model_name)
+        except Exception as e:
+            print(f'Model wasnt save. Error occurred: \n{e}')
+    else:
+        print('Model fitting was interrupted too early. Model wasnt save.')
+
+    empty_cache()
+
+
+def empty_cache():
+    gc.collect()
+    torch.cuda.empty_cache()
+
+
+def save_plot_hist(hist: list, plot_name: str) -> None:
+    label = os.path.basename(plot_name)[:-4]
+    plt.plot(np.arange(len(hist)), np.array(hist), label=label)
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(plot_name)
+
+
+def check_folder_name(save_dir_path: str) -> str:
+    # checkout: folder exists and its not empty, then we change folder name
+    path_len = len(save_dir_path)
+    i = 1
+    while os.path.isdir(save_dir_path) and (os.listdir(save_dir_path)):
+        save_dir_path = save_dir_path[:path_len] + str(i)
+        i += 1
+    os.makedirs(save_dir_path, exist_ok=True)
+    return save_dir_path
 
 
 def global_seed(determ: bool = False) -> None:

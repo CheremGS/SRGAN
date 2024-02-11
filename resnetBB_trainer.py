@@ -1,63 +1,66 @@
+import os
 import torch
 import torch.nn as nn
 import torch.utils.data
 from tqdm import tqdm
 
-from datasetCustom import SRDataset
+from train_utils import *
 from SRGAN_model import Generator
-from utils import yaml_read, transforms_init, global_seed
+from utils import yaml_read, transforms_init, global_seed, \
+                    check_folder_name, custom_save_model, save_plot_hist
 
 
 def main(cfg: dict):
-    device = cfg['device'].lower()
+    model_name = f'SRresnet{cfg["n_blocks"]}_{cfg["upscale_factor"]}upscale.pth'
+    hist_plot = 'train_mse_losses.png'
+
+    device = init_device(cfg=cfg)
     global_seed(cfg['deterministic'])
 
-    dataset = SRDataset(root_dir=cfg['data_path_train'],
-                        dir_in=cfg['train_in_dir'],
-                        dir_out=cfg['train_out_dir'],
-                        transforms=transforms_init(cfg=cfg))
+    save_run_path = check_folder_name(os.path.join(cfg['save_dir'], cfg['save_run_name']))
 
-    dataloader = torch.utils.data.DataLoader(dataset, shuffle=True,
-                                             batch_size=cfg['batch_size'],
-                                             pin_memory=True,
-                                             num_workers=cfg['workers'])
+    save_model_path = os.path.join(save_run_path, model_name)
+    save_plot_hist_path = os.path.join(save_run_path, hist_plot)
+
+    dataloader = generate_dataloader(cfg)
 
     gen_model = Generator(n_blocks=cfg['n_blocks'],
                           scaling_factor=cfg['upscale_factor']).to(device)
     pixel_mse = nn.MSELoss()
 
-    # toDo: all optimizer components must be contained in cfg
-    optimizer = torch.optim.AdamW(params=[x for x in gen_model.parameters() if x.requires_grad],
-                                  lr=cfg['lr'],
-                                  weight_decay=1e-6,
-                                  amsgrad=True)
-    scaler = torch.cuda.amp.GradScaler()
+    optimizer = init_optimizator(cfg=cfg, model=gen_model)
+    lr_scheduler = init_lr_scheduler(cfg=cfg, optimizer=optimizer)
+
+    amp_enabled = cfg['amp']
+    scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
     train_state = None
     best_loss = torch.inf
-    model_save_path = f'./pth_models/SRresnet{cfg["n_blocks"]}_{cfg["upscale_factor"]}upscale.pth'
+    train_hist = []
     # train generator without validation
     # discriminator can suppress generator on early epochs
     # such pretrain allow avoid that case
     try:
+        optimizer.zero_grad()
         gen_model.train()
-        for epoch in range(cfg['start_epoch'], cfg['epochs']):
+        for epoch in range(cfg['epochs']):
             pbar = tqdm(dataloader, total=len(dataloader))
             avg_loss = 0.0
             for low_res_imgs, high_res_imgs in pbar:
                 x = low_res_imgs.to(device, non_blocking=True)
                 y = high_res_imgs.to(device, non_blocking=True)
 
-                optimizer.zero_grad(set_to_none=True)
-                with torch.cuda.amp.autocast():
+                with torch.cuda.amp.autocast(enabled=amp_enabled):
                     sr = gen_model(x)
                     loss = pixel_mse(sr, y)
 
-                if (epoch - cfg['start_epoch']+1) % cfg['accumulation_steps'] == 0:
-                    scaler.scale(loss).backward()
+                avg_loss += loss.item()
+                scaler.scale(loss).backward()
+                if (epoch+1) % cfg['accumulation_steps'] == 0:
                     scaler.step(optimizer)
                     scaler.update()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
 
-                avg_loss += loss.item()
                 pbar.set_description(f"[{epoch}/{cfg['epochs']}] MSE loss: {loss.item():.4f}")
 
             if ((epoch + 1) % cfg['checkpoint_steps'] == 0) and (avg_loss < best_loss):
@@ -65,24 +68,12 @@ def main(cfg: dict):
                 train_state = {'model_weights': gen_model.state_dict(),
                                'epoch': epoch,
                                'loss': avg_loss}
-
-        else:
-            train_state = {'model_weights': gen_model.state_dict(),
-                           'epoch': epoch,
-                           'loss': avg_loss}
-
-    except KeyboardInterrupt:
-        print('Generator backbone train is over')
-        if train_state is not None:
-            print(f'Model was saved in {model_save_path}')
-            torch.save(train_state, model_save_path)
-        else:
-            print('Model fitting was interrupted too early. Model wasnt save.')
-    else:
-        print(f'Model was saved in {model_save_path}')
-        torch.save(train_state, model_save_path)
-
-    torch.cuda.empty_cache()
+            train_hist.append(avg_loss)
+    finally:
+        custom_save_model(save_state=train_state,
+                          model_name=save_model_path)
+        save_plot_hist(hist=train_hist,
+                       plot_name=save_plot_hist_path)
 
 
 if __name__ == "__main__":
