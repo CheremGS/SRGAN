@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 def custom_save_model(save_state: dict, model_name: str) -> None:
     """Save torch model and del cache"""
-    print('Generator backbone train is over')
+    print('Model train is over')
     if save_state is not None:
         print(f'Model was saved in {model_name}')
         try:
@@ -29,12 +29,14 @@ def empty_cache():
     torch.cuda.empty_cache()
 
 
-def save_plot_hist(hist: list, plot_name: str) -> None:
+def save_plot_hist(hist: list, plot_name: str, savefig: bool = True) -> None:
     label = os.path.basename(plot_name)[:-4]
     plt.plot(np.arange(len(hist)), np.array(hist), label=label)
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(plot_name)
+
+    if savefig:
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(plot_name)
 
 
 def check_folder_name(save_dir_path: str) -> str:

@@ -14,7 +14,7 @@ batch_size: 2
 workers: 4
 accumulation_steps: 3
 checkpoint_steps: 2
-save_dir: './runs'
+save_dir: '../runs'
 save_run_name: 'run'
 
 # optim hyperparameters
