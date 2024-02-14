@@ -7,11 +7,11 @@ if __name__ == "__main__":
     train_modes = ['gen_pretrain', 'gan_train']
     mode = 1
     if mode == 0:
-        config = yaml_read(yaml_path='../config.yaml')
+        config = yaml_read(yaml_path='train_config.yaml')
         genTrain = GeneratorTrainer(cfg=config)
         genTrain.run()
     elif mode == 1:
-        config = yaml_read(yaml_path='../config.yaml')
+        config = yaml_read(yaml_path='train_config.yaml')
         ganTrain = GANTrainer(cfg=config)
         ganTrain.run()
     else:

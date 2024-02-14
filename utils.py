@@ -61,7 +61,7 @@ def global_seed(determ: bool = False) -> None:
         torch.use_deterministic_algorithms(False)
 
 
-def yaml_read(yaml_path: str = './config.yaml') -> dict:
+def yaml_read(yaml_path: str = './train_config.yaml') -> dict:
     assert os.path.isfile(yaml_path), "Wrong specified yaml path"
     with open(yaml_path, 'r') as yaml_stream:
         fi = yaml.safe_load(yaml_stream)

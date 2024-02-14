@@ -42,9 +42,9 @@ class SRDataset(Dataset):
 
 if __name__ == "__main__":
     cfg = yaml_read()
-    obj = SRDataset(root_dir = cfg['data_path_train'],
-                    dir_in = cfg['train_in_dir'],
-                    dir_out = cfg['train_out_dir'],
+    obj = SRDataset(root_dir=cfg['data_path_train'],
+                    dir_in=cfg['train_in_dir'],
+                    dir_out=cfg['train_out_dir'],
                     transforms=transforms_init(cfg=cfg))
 
     for op in iter(obj):

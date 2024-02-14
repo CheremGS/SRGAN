@@ -57,7 +57,9 @@ class GANTrainer(Trainer):
                     best_loss = gl
                     train_state = {'model_weights': gen_model.state_dict(),
                                    'gen_loss': gl,
-                                   'discr_loss': dl}
+                                   'discr_loss': dl,
+                                   'epochs_train': epoch,
+                                   'cfg': self.cfg}
 
                 discr_train_hist.append(dl)
                 gen_train_hist.append(dl)
