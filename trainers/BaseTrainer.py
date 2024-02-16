@@ -28,6 +28,7 @@ class Trainer:
     def transforms_init(self) -> list:
         l = self.cfg['image_base_resolution']
         transf = [A.Compose([A.Resize(width=l, height=l, interpolation=cv2.INTER_NEAREST),
+                             # A.Blur(always_apply=True),
                              A.Normalize(max_pixel_value=255.,
                                          mean=(0, 0, 0),
                                          std=(1, 1, 1)),
@@ -73,6 +74,7 @@ class Trainer:
                                                   gamma=self.cfg['lr_gamma'])
         elif lr_scheduler == "cosinelr":
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                             T_max=self.cfg['cosine_lr_period'],
                                                              eta_min=self.cfg['lr_min'])
         elif lr_scheduler == "explr":
             scheduler = optim.lr_scheduler.ExponentialLR(optimizer,

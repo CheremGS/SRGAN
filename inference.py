@@ -3,7 +3,7 @@ import torch
 
 from SRGAN_model import *
 from interpolators import Interpolator
-from utils import yaml_read, cv_imshow, double_imshow_cv, transforms_init
+from utils import yaml_read, cv_imshow, double_imshow_cv, transforms_init, quadra_imshow_cv
 from datasetCustom import SRDataset
 
 
@@ -12,7 +12,7 @@ super_resolution = 256
 
 
 gen_model = Generator()
-generator_path = r'./runs/run1/SRGAN_16blocks_2x.pth'
+generator_path = r'runs/the_best_one/SRGAN_16blocks_2x.pth'
 gen_info = torch.load(generator_path)
 gen_model.load_state_dict(gen_info['model_weights'])
 gen_model.eval()
@@ -31,8 +31,10 @@ for op in iter(obj):
     with torch.no_grad():
         generator_res = gen_model(inp[None, ...])
 
-    inter_res = interpol(inp.permute(1, 2, 0).numpy())
-    double_imshow_cv(inter_res, generator_res[0].permute(1, 2, 0).numpy())
-    # inp, out = inp.permute(1, 2, 0).numpy(), out.permute(1, 2, 0).numpy()
-    # double_imshow_cv(inp, out)
+    input_pic = inp.permute(1, 2, 0).numpy()
+    target_pic = out.permute(1, 2, 0).numpy()
+    model1_interpolator_pic = interpol(inp.permute(1, 2, 0).numpy())
+    model2_gan_pic = generator_res[0].permute(1, 2, 0).numpy()
+
+    quadra_imshow_cv(input_pic, target_pic, model1_interpolator_pic, model2_gan_pic)
 

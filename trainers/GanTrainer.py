@@ -13,7 +13,8 @@ from imgLoss import PerceptionLoss
 class GANTrainer(Trainer):
     def train_loop(self):
         save_model_path, save_hist_gen, save_hist_discr = self.init_save_path()
-        genbb_weights = f'../runs/run/SRresnet{self.cfg["n_blocks"]}_{self.cfg["upscale_factor"]}upscale.pth'
+        # toDo: read model path from config
+        genbb_weights = self.cfg['pretrain_gen_net']
         self.init_device()
 
         dataloader = self.init_dataloaders()
@@ -25,6 +26,8 @@ class GANTrainer(Trainer):
             gen_model.load_state_dict(srresnet['model_weights'])
         except Exception as e:
             raise RuntimeError(f'Generator backbone wasnt load. Error ocurred: {e}')
+
+        # toDo: add parameters for discr (lr, weight) in config
         discr_model = Discriminator().to(self.device)
 
         perception_criterion = PerceptionLoss(device=self.device, num_feature_layer=self.cfg['num_vgg_layer_mse'])
@@ -53,7 +56,7 @@ class GANTrainer(Trainer):
                                          lr_schedulers=[gen_lr_scheduler, discr_lr_scheduler],
                                          i_epoch=epoch)
 
-                if ((epoch + 1) % self.cfg['checkpoint_steps'] == 0) and (gl < best_loss):
+                if gl < best_loss:
                     best_loss = gl
                     train_state = {'model_weights': gen_model.state_dict(),
                                    'gen_loss': gl,
@@ -67,7 +70,7 @@ class GANTrainer(Trainer):
             custom_save_model(save_state=train_state,
                               model_name=save_model_path)
             save_plot_hist(hist=gen_train_hist,
-                           plot_name=save_hist_gen, savefig=False)
+                           plot_name=save_hist_gen)
             save_plot_hist(hist=discr_train_hist,
                            plot_name=save_hist_discr)
 
@@ -118,7 +121,7 @@ class GANTrainer(Trainer):
                 optimizers[1].zero_grad(set_to_none=True)
 
             pbar.set_description(
-                f"[{i_epoch + 1}/{self.cfg['epochs']}] Loss_D: {adversarial_loss.item():.4f} Loss_G: {perceptual_loss.item():.4f} ")
+                f"[{i_epoch + 1}/{self.cfg['epochs']}] Loss_D: {adversarial_loss.item()/pbar.n:.4f} Loss_G: {perceptual_loss.item()/pbar.n:.4f} ")
 
         return gen_epoch_loss/len(data), discr_epoch_loss/len(data)
 

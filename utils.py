@@ -29,14 +29,12 @@ def empty_cache():
     torch.cuda.empty_cache()
 
 
-def save_plot_hist(hist: list, plot_name: str, savefig: bool = True) -> None:
+def save_plot_hist(hist: list, plot_name: str) -> None:
     label = os.path.basename(plot_name)[:-4]
     plt.plot(np.arange(len(hist)), np.array(hist), label=label)
-
-    if savefig:
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(plot_name)
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(plot_name)
 
 
 def check_folder_name(save_dir_path: str) -> str:
@@ -83,25 +81,49 @@ def get_imgs_names(img_dir: str) -> (list, int):
     return img_names, imgs_number
 
 
-def img_concat_cv(img1: np.array, img2: np.array, y_pad: int, x_pad:int) -> np.array:
-    return np.concatenate((img1, cv2.copyMakeBorder(img2, top=y_pad, bottom=y_pad,
-                                                        right=x_pad, left=x_pad,
-                                                        borderType=cv2.BORDER_CONSTANT,
-                                                        value=0.)), axis=1)
+def img_concat_cv(img1: np.array, img2: np.array, y_pad: int, x_pad: int, axis: int = 1) -> np.array:
+    if (x_pad == 0) and (y_pad == 0):
+        return np.concatenate((img1, img2), axis=axis)
+    else:
+        return np.concatenate((img1, cv2.copyMakeBorder(img2, top=y_pad, bottom=y_pad,
+                                                            right=x_pad, left=x_pad,
+                                                            borderType=cv2.BORDER_CONSTANT,
+                                                            value=0.)), axis=axis)
 
 
 def double_imshow_cv(img1: np.array, img2: np.array) -> None:
+    x_adds, y_adds = img_padding(img1, img2)
+    if img1.shape[0] < img2.shape[0]:
+        show_pic = img_concat_cv(img1=img2, img2=img1, y_pad=y_adds, x_pad=x_adds)
+    else:
+        show_pic = img_concat_cv(img1=img1, img2=img2, y_pad=y_adds, x_pad=x_adds)
+
+    cv2.imshow(f'image 1 and image 2', show_pic)
+    cv2.waitKey(0)
+
+
+def img_padding(img1:np.array, img2:np.array):
     y_adds = (img1.shape[0] - img2.shape[0]) // 2
     x_adds = (img1.shape[1] - img2.shape[1]) // 2
     if img1.shape[0] < img2.shape[0]:
         y_adds *= -1
         x_adds *= -1
-        show_pic = img_concat_cv(img1=img2, img2=img1, y_pad=y_adds, x_pad=x_adds)
-    else:
-        show_pic = img_concat_cv(img1=img1, img2=img2, y_pad=y_adds, x_pad=x_adds)
+    return x_adds, y_adds
 
-    cv2.imshow(f'Out model and orig images', show_pic)
+
+def quadra_imshow_cv(img_input: np.array, img_target: np.array,
+                     img_model1: np.array, img_model2: np.array) -> None:
+    assert img_target.shape == img_model1.shape == img_model2.shape, \
+            'Models outputs and target image have different sizes'
+
+    x_adds, y_adds = img_padding(img_input, img_target)
+    in_out_img_pic = img_concat_cv(img1=img_target, img2=img_input, y_pad=y_adds, x_pad=x_adds)
+    models_pic = img_concat_cv(img1=img_model1, img2=img_model2, y_pad=0, x_pad=0)
+    quadra_pic = img_concat_cv(in_out_img_pic, models_pic, axis=0, y_pad=0, x_pad=0)
+    cv2.imshow(f'11-target, 12-input, 21-model1, 22-model2', quadra_pic)
     cv2.waitKey(0)
+
+
 
 
 def transforms_init(cfg: dict) -> list:
