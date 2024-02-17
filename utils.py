@@ -111,19 +111,36 @@ def img_padding(img1:np.array, img2:np.array):
     return x_adds, y_adds
 
 
-def quadra_imshow_cv(img_input: np.array, img_target: np.array,
-                     img_model1: np.array, img_model2: np.array) -> None:
-    assert img_target.shape == img_model1.shape == img_model2.shape, \
+def quadra_imshow_cv(pics: dict) -> None:
+    assert pics['target_pic'].shape == pics['interpolate_pic'].shape == pics['gan_pic'].shape, \
             'Models outputs and target image have different sizes'
+
+    img_input = pics['input_pic']
+    img_target = pics['target_pic']
+    img_model1 = pics['interpolate_pic']
+    img_model2 = pics['gan_pic']
 
     x_adds, y_adds = img_padding(img_input, img_target)
     in_out_img_pic = img_concat_cv(img1=img_target, img2=img_input, y_pad=y_adds, x_pad=x_adds)
     models_pic = img_concat_cv(img1=img_model1, img2=img_model2, y_pad=0, x_pad=0)
     quadra_pic = img_concat_cv(in_out_img_pic, models_pic, axis=0, y_pad=0, x_pad=0)
-    cv2.imshow(f'11-target, 12-input, 21-model1, 22-model2', quadra_pic)
+
+    caption_shift = 20
+    quadra_pic = cv2.putText(quadra_pic, 'input', (quadra_pic.shape[1] // 2 + caption_shift,
+                                                   caption_shift),
+                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    quadra_pic = cv2.putText(quadra_pic, 'target', (caption_shift,
+                                                    caption_shift),
+                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    quadra_pic = cv2.putText(quadra_pic, 'interpolation', (caption_shift,
+                                                           quadra_pic.shape[1] // 2 + caption_shift),
+                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    quadra_pic = cv2.putText(quadra_pic, 'gan', (quadra_pic.shape[1] // 2 + caption_shift,
+                                                 quadra_pic.shape[1] // 2 + caption_shift),
+                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+    cv2.imshow(f'inference comparison', quadra_pic)
     cv2.waitKey(0)
-
-
 
 
 def transforms_init(cfg: dict) -> list:

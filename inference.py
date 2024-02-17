@@ -36,5 +36,10 @@ for op in iter(obj):
     model1_interpolator_pic = interpol(inp.permute(1, 2, 0).numpy())
     model2_gan_pic = generator_res[0].permute(1, 2, 0).numpy()
 
-    quadra_imshow_cv(input_pic, target_pic, model1_interpolator_pic, model2_gan_pic)
+    pic_caption = {'input_pic': input_pic,
+                   'target_pic': target_pic,
+                   'interpolate_pic': model1_interpolator_pic,
+                   'gan_pic': model2_gan_pic}
+
+    quadra_imshow_cv(pic_caption)
 
