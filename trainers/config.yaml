@@ -22,19 +22,19 @@ save_run_name: 'run'
 
 # gan model train
 pretrain_gen_net: '../runs/best_pretrain/SRresnet16_2upscale.pth'
-# discr_lr: 0.001
-# discr_weight_decay: 0.00001
+discr_lr: 0.001
+discr_weight_decay: 0.00001
 
 # optim hyperparameters
-opt_algo: "AdamW"
-lr: 0.001
+opt_algo: "SGD"
+lr: 0.01
 weight_decay: 0.000001
 momentum: 0.9
 
 # lr_scheduler
 sched_type: 'cosinelr'
-lr_step: 10
-lr_gamma: 0.001
+lr_step: 3
+lr_gamma: 0.0001
 lr_min: 0.000001
 cosine_lr_period: 10
 

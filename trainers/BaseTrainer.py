@@ -32,7 +32,7 @@ class Trainer:
                                          mean=(0, 0, 0),
                                          std=(1, 1, 1)),
                              ToTensorV2()]),
-                  A.Compose([
+                  A.Compose([A.Blur(blur_limit=3, always_apply=True),
                              A.Normalize(max_pixel_value=255.,
                                          mean=(0, 0, 0),
                                          std=(1, 1, 1)),
@@ -56,17 +56,27 @@ class Trainer:
 
     def init_optimizer(self, model):
         algorithm = self.cfg['opt_algo'].lower()
+        if model.__class__.__name__ == 'Discriminator':
+            lr_key = 'discr_lr'
+            wd_key = 'discr_weight_decay'
+        elif model.__class__.__name__ == 'Generator':
+            lr_key = 'lr'
+            wd_key = 'weight_decay'
+        else:
+            raise RuntimeError(f'Specify wrong model class=={model.__class__.__name__}! '
+                               f'("Discriminator" and "Generator" are available)')
+
         if algorithm == 'adamw':
             optimizer = optim.AdamW(params=[x for x in model.parameters() if x.requires_grad],
-                                    lr=self.cfg['lr'],
-                                    weight_decay=self.cfg['weight_decay'],
+                                    lr=self.cfg[lr_key],
+                                    weight_decay=self.cfg[wd_key],
                                     amsgrad=True)
         elif algorithm == 'sgd':
             optimizer = optim.SGD(params=[x for x in model.parameters() if x.requires_grad],
-                                  lr=self.cfg['lr'],
+                                  lr=self.cfg[lr_key],
                                   momentum=self.cfg['momentum'],
                                   nesterov=True,
-                                  weight_decay=self.cfg['weight_decay'])
+                                  weight_decay=self.cfg[wd_key])
         else:
             raise ValueError(f'Specified wrong optimizer type. Availables optims ["adamw", "sgd"]')
         return optimizer
