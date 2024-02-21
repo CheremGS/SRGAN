@@ -65,7 +65,7 @@ class GANTrainer(Trainer):
                                    'cfg': self.cfg}
 
                 discr_train_hist.append(dl)
-                gen_train_hist.append(dl)
+                gen_train_hist.append(gl)
         finally:
             custom_save_model(save_state=train_state,
                               model_name=save_model_path)
@@ -121,7 +121,8 @@ class GANTrainer(Trainer):
                 optimizers[1].zero_grad(set_to_none=True)
 
             pbar.set_description(
-                f"[{i_epoch + 1}/{self.cfg['epochs']}] Loss_D: {adversarial_loss.item()/pbar.n:.4f} Loss_G: {perceptual_loss.item()/pbar.n:.4f} ")
+                f"[{i_epoch + 1}/{self.cfg['epochs']}] Loss_D: {discr_epoch_loss/(pbar.n+1):.5f} "
+                f"Loss_G: {gen_epoch_loss/(pbar.n+1):.5f} ")
 
         return gen_epoch_loss/len(data), discr_epoch_loss/len(data)
 

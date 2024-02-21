@@ -59,7 +59,7 @@ def global_seed(determ: bool = False) -> None:
         torch.use_deterministic_algorithms(False)
 
 
-def yaml_read(yaml_path: str = './train_config.yaml') -> dict:
+def yaml_read(yaml_path: str = './config.yaml') -> dict:
     assert os.path.isfile(yaml_path), "Wrong specified yaml path"
     with open(yaml_path, 'r') as yaml_stream:
         fi = yaml.safe_load(yaml_stream)
@@ -126,6 +126,7 @@ def quadra_imshow_cv(pics: dict) -> None:
     quadra_pic = img_concat_cv(in_out_img_pic, models_pic, axis=0, y_pad=0, x_pad=0)
 
     caption_shift = 20
+
     quadra_pic = cv2.putText(quadra_pic, 'input', (quadra_pic.shape[1] // 2 + caption_shift,
                                                    caption_shift),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)

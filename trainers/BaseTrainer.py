@@ -28,12 +28,17 @@ class Trainer:
     def transforms_init(self) -> list:
         l = self.cfg['image_base_resolution']
         transf = [A.Compose([A.Resize(width=l, height=l, interpolation=cv2.INTER_NEAREST),
-                             # A.Blur(always_apply=True),
                              A.Normalize(max_pixel_value=255.,
                                          mean=(0, 0, 0),
                                          std=(1, 1, 1)),
                              ToTensorV2()]),
-                  None]
+                  A.Compose([
+                             A.Normalize(max_pixel_value=255.,
+                                         mean=(0, 0, 0),
+                                         std=(1, 1, 1)),
+                              ToTensorV2()]
+                            )
+                  ]
         return transf
 
     def init_dataloaders(self):

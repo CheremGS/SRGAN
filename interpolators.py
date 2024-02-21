@@ -30,7 +30,7 @@ class Interpolator:
 
 
 if __name__ == "__main__":
-    yaml_path = 'trainers/train_config.yaml'
+    yaml_path = 'trainers/config.yaml'
 
     conf_data = yaml_read(yaml_path)
     img_dir = conf_data['data_path']
