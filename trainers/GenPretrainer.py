@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.utils.data
 from tqdm import tqdm
 
-from utils import check_folder_name, custom_save_model, save_plot_hist
+from utils import check_folder_name, custom_save_model, save_plot_hist, global_seed
 from BaseTrainer import Trainer
 from SRGAN_model import Generator
 
@@ -15,7 +15,7 @@ class GeneratorTrainer(Trainer):
         hist_plot = 'train_mse_losses.png'
 
         # device = self.init_device()
-        # global_seed(cfg['deterministic'])
+        global_seed(self.cfg['deterministic'])
 
         save_run_path = check_folder_name(os.path.join(self.cfg['save_dir'], self.cfg['save_run_name']))
 
@@ -23,7 +23,7 @@ class GeneratorTrainer(Trainer):
         save_plot_hist_path = os.path.join(save_run_path, hist_plot)
         return save_model_path, save_plot_hist_path
 
-    def train_loop(self):
+    def train_loop(self) -> None:
         self.init_device()
         save_model_path, save_plot_hist_path = self.init_save_path()
         dataloader = self.init_dataloaders()
@@ -39,9 +39,7 @@ class GeneratorTrainer(Trainer):
         train_state = None
         best_loss = torch.inf
         train_hist = []
-        # train generator without validation
-        # discriminator can suppress generator on early epochs
-        # such pretrain allow avoid that case
+
         try:
             for epoch in range(self.cfg['epochs']):
                 avg_losses = self.train_step(model=gen_model,
@@ -51,7 +49,7 @@ class GeneratorTrainer(Trainer):
                                              i_epoch=epoch,
                                              data=dataloader,
                                              scaler=scaler)
-                if ((epoch + 1) % self.cfg['checkpoint_steps'] == 0) and (avg_losses < best_loss):
+                if avg_losses < best_loss:
                     best_loss = avg_losses
                     train_state = {'model_weights': gen_model.state_dict(),
                                    'epoch': epoch,
@@ -59,11 +57,12 @@ class GeneratorTrainer(Trainer):
                 train_hist.append(avg_losses)
         finally:
             custom_save_model(save_state=train_state,
-                              model_name=save_model_path)
+                              model_name=save_model_path,
+                              cfg=self.cfg)
             save_plot_hist(hist=train_hist,
                            plot_name=save_plot_hist_path)
 
-    def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler):
+    def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler) -> float:
         model.train()
         optimizer.zero_grad()
         pbar = tqdm(data, total=len(data))
@@ -84,6 +83,6 @@ class GeneratorTrainer(Trainer):
                 lr_scheduler.step()
                 optimizer.zero_grad()
 
-            pbar.set_description(f"[{i_epoch}/{self.cfg['epochs']}] MSE loss: {loss.item():.4f}")
+            pbar.set_description(f"[{i_epoch}/{self.cfg['epochs']}] MSE loss: {avg_loss/(pbar.n+1):.4f}")
 
         return avg_loss/len(data)

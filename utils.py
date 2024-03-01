@@ -3,13 +3,14 @@ import os
 import cv2
 import gc
 import torch
+import random
 import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import matplotlib.pyplot as plt
 
 
-def custom_save_model(save_state: dict, model_name: str) -> None:
+def custom_save_model(save_state: dict, model_name: str, cfg: dict = None) -> None:
     """Save torch model and del cache"""
     print('Model train is over')
     if save_state is not None:
@@ -18,6 +19,12 @@ def custom_save_model(save_state: dict, model_name: str) -> None:
             torch.save(save_state, model_name)
         except Exception as e:
             print(f'Model wasnt save. Error occurred: \n{e}')
+        else:
+            if cfg is not None:
+                cfg_dir = os.path.dirname(model_name)
+                cfg_name = os.path.splitext(os.path.basename(model_name))[0] + '_config.yaml'
+                with open(os.path.join(cfg_dir, cfg_name), 'w') as f:
+                    yaml.dump(cfg, f)
     else:
         print('Model fitting was interrupted too early. Model wasnt save.')
 
@@ -51,6 +58,8 @@ def check_folder_name(save_dir_path: str) -> str:
 def global_seed(determ: bool = False) -> None:
     SEED = torch.initial_seed()%2**32
     torch.manual_seed(SEED)
+    random.seed(SEED)
+    np.random.seed(SEED)
     if determ:
         torch.backends.cudnn.benchmark = False
         torch.use_deterministic_algorithms(True)
@@ -151,7 +160,11 @@ def transforms_init(cfg: dict) -> list:
                                      mean=(0, 0, 0),
                                      std=(1, 1, 1)),
                          ToTensorV2()]),
-              None]
+              A.Compose([
+                         A.Normalize(max_pixel_value=255.,
+                                     mean=(0, 0, 0),
+                                     std=(1, 1, 1)),
+                         ToTensorV2()])]
     return transf
 
 

@@ -11,9 +11,8 @@ from imgLoss import PerceptionLoss
 
 
 class GANTrainer(Trainer):
-    def train_loop(self):
+    def train_loop(self) -> None:
         save_model_path, save_hist_gen, save_hist_discr = self.init_save_path()
-        # toDo: read model path from config
         genbb_weights = self.cfg['pretrain_gen_net']
         self.init_device()
 
@@ -27,7 +26,6 @@ class GANTrainer(Trainer):
         except Exception as e:
             raise RuntimeError(f'Generator backbone wasnt load. Error ocurred: {e}')
 
-        # toDo: add parameters for discr (lr, weight) in config
         discr_model = Discriminator().to(self.device)
 
         perception_criterion = PerceptionLoss(device=self.device, num_feature_layer=self.cfg['num_vgg_layer_mse'])
@@ -61,14 +59,14 @@ class GANTrainer(Trainer):
                     train_state = {'model_weights': gen_model.state_dict(),
                                    'gen_loss': gl,
                                    'discr_loss': dl,
-                                   'epochs_train': epoch,
-                                   'cfg': self.cfg}
+                                   'epochs_train': epoch}
 
                 discr_train_hist.append(dl)
                 gen_train_hist.append(gl)
         finally:
             custom_save_model(save_state=train_state,
-                              model_name=save_model_path)
+                              model_name=save_model_path,
+                              cfg=self.cfg)
             save_plot_hist(hist=gen_train_hist,
                            plot_name=save_hist_gen)
             save_plot_hist(hist=discr_train_hist,
@@ -77,8 +75,8 @@ class GANTrainer(Trainer):
         torch.cuda.empty_cache()
 
     def train_step(self, data, models, optimizers, lr_schedulers, criterions, i_epoch, scalers) -> (float, float):
-        # models, scalers, optimizers, lr_schedulers
-        # contain two objects: for generator(index 0) and discriminator(index 1)
+        # models, scalers, optimizers, lr_schedulers contain two objects:
+        # for generator(index 0) and discriminator(index 1)
         # criterions: perception_loss(index 0) and adversarial_loss(index 1)
         models[0].train()
         models[1].train()

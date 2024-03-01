@@ -13,30 +13,29 @@ image_base_resolution: 128
 
 # total model train parameters
 epochs: 100
-batch_size: 2
+batch_size: 4
 workers: 4
 accumulation_steps: 5
-checkpoint_steps: 3
 save_dir: '../runs'
 save_run_name: 'run'
 
 # gan model train
 pretrain_gen_net: '../runs/best_pretrain/SRresnet16_2upscale.pth'
-discr_lr: 0.001
-discr_weight_decay: 0.00001
+discr_lr: 0.00002
+discr_weight_decay: 0.000001
 
 # optim hyperparameters
-opt_algo: "SGD"
-lr: 0.01
+opt_algo: "AdamW"
+lr: 0.00002
 weight_decay: 0.000001
 momentum: 0.9
 
 # lr_scheduler
-sched_type: 'cosinelr'
-lr_step: 3
-lr_gamma: 0.0001
+sched_type: 'explr'
+lr_step: 4
+lr_gamma: 0.75
 lr_min: 0.000001
-cosine_lr_period: 10
+cosine_lr_period: 20
 
 # model hyperparams
 upscale_factor: 2
@@ -48,7 +47,7 @@ num_vgg_layer_mse: 35
 device: 'cuda'
 deterministic: False
 parallel: False
-amp: False
+amp: True
 
 
 

@@ -13,26 +13,26 @@ class Trainer:
         self.cfg = cfg
         self.device = None
 
-    def init_save_path(self):
+    def init_save_path(self) -> tuple:
         pass
 
-    def train_loop(self):
+    def train_loop(self) -> None:
         pass
 
     def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler) -> float or (float, float):
         pass
 
-    def run(self):
+    def run(self) -> None:
         self.train_loop()
 
     def transforms_init(self) -> list:
         l = self.cfg['image_base_resolution']
-        transf = [A.Compose([A.Resize(width=l, height=l, interpolation=cv2.INTER_NEAREST),
+        transf = [A.Compose([A.Resize(width=l, height=l),
                              A.Normalize(max_pixel_value=255.,
                                          mean=(0, 0, 0),
                                          std=(1, 1, 1)),
                              ToTensorV2()]),
-                  A.Compose([A.Blur(blur_limit=3, always_apply=True),
+                  A.Compose([
                              A.Normalize(max_pixel_value=255.,
                                          mean=(0, 0, 0),
                                          std=(1, 1, 1)),
@@ -41,7 +41,7 @@ class Trainer:
                   ]
         return transf
 
-    def init_dataloaders(self):
+    def init_dataloaders(self) -> DataLoader:
         dataset = SRDataset(root_dir=self.cfg['data_path_train'],
                             dir_in=self.cfg['train_in_dir'],
                             dir_out=self.cfg['train_out_dir'],
@@ -54,7 +54,7 @@ class Trainer:
                                 num_workers=self.cfg['workers'])
         return dataloader
 
-    def init_optimizer(self, model):
+    def init_optimizer(self, model) -> optim.Optimizer:
         algorithm = self.cfg['opt_algo'].lower()
         if model.__class__.__name__ == 'Discriminator':
             lr_key = 'discr_lr'
@@ -81,7 +81,7 @@ class Trainer:
             raise ValueError(f'Specified wrong optimizer type. Availables optims ["adamw", "sgd"]')
         return optimizer
 
-    def init_lr_scheduler(self, optimizer):
+    def init_lr_scheduler(self, optimizer: optim.Optimizer) -> optim.lr_scheduler:
         lr_scheduler = self.cfg['sched_type'].lower()
         if lr_scheduler == "steplr":
             scheduler = optim.lr_scheduler.StepLR(optimizer,
@@ -100,7 +100,7 @@ class Trainer:
                 f"and ExponentialLR (explr) are supported.")
         return scheduler
 
-    def init_device(self):
+    def init_device(self) -> None:
         gpus_avail = cuda.is_available()
         if gpus_avail and self.cfg['device'] == 'cuda':
             self.device = 'cuda'
