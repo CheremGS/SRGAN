@@ -39,6 +39,11 @@ def empty_cache():
 def save_plot_hist(hist: list, plot_name: str) -> None:
     label = os.path.basename(plot_name)[:-4]
     plt.plot(np.arange(len(hist)), np.array(hist), label=label)
+
+    plt.xticks(np.arange(len(hist)), np.arange(len(hist)))
+    plt.xlabel('Epoch number')
+    plt.ylabel('Loss value')
+
     plt.legend()
     plt.grid(True)
     plt.savefig(plot_name)
