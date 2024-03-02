@@ -41,6 +41,13 @@ class GeneratorTrainer(Trainer):
         train_hist = []
 
         try:
+            self.profile_one_batch(model=gen_model,
+                                   optimizer=optimizer,
+                                   lr_scheduler=lr_scheduler,
+                                   criterion=pixel_mse,
+                                   data=dataloader,
+                                   scaler=scaler)
+            print('Model train process')
             for epoch in range(self.cfg['epochs']):
                 avg_losses = self.train_step(model=gen_model,
                                              optimizer=optimizer,
@@ -62,12 +69,12 @@ class GeneratorTrainer(Trainer):
             save_plot_hist(hist=train_hist,
                            plot_name=save_plot_hist_path)
 
-    def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler) -> float:
+    def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler, model_profile=False) -> float:
         model.train()
         optimizer.zero_grad()
-        pbar = tqdm(data, total=len(data))
+        pbar = tqdm(enumerate(data), total=len(data))
         avg_loss = 0.0
-        for low_res_imgs, high_res_imgs in pbar:
+        for i, (low_res_imgs, high_res_imgs) in pbar:
             x = low_res_imgs.to(self.device, non_blocking=True)
             y = high_res_imgs.to(self.device, non_blocking=True)
 
@@ -77,11 +84,14 @@ class GeneratorTrainer(Trainer):
 
             avg_loss += loss.item()
             scaler.scale(loss).backward()
-            if (i_epoch + 1) % self.cfg['accumulation_steps'] == 0:
+            if (i + 1) % self.cfg['accumulation_steps'] == 0:
                 scaler.step(optimizer)
                 scaler.update()
                 lr_scheduler.step()
                 optimizer.zero_grad()
+
+            if model_profile:
+                break
 
             pbar.set_description(f"[{i_epoch}/{self.cfg['epochs']}] MSE loss: {avg_loss/(pbar.n+1):.4f}")
 

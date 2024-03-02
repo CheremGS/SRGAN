@@ -45,13 +45,20 @@ class GANTrainer(Trainer):
         gen_train_hist = []
 
         try:
+            self.profile_one_batch(data=dataloader,
+                                   model=[gen_model, discr_model],
+                                   criterion=[perception_criterion, adversarial_criterion],
+                                   optimizer=[gen_optimizer, discr_optimizer],
+                                   scaler=[gen_scaler, discr_scaler],
+                                   lr_scheduler=[gen_lr_scheduler, discr_lr_scheduler])
+            print('Model train process')
             for epoch in range(self.cfg['epochs']):
                 gl, dl = self.train_step(data=dataloader,
-                                         models=[gen_model, discr_model],
-                                         criterions=[perception_criterion, adversarial_criterion],
-                                         optimizers=[gen_optimizer, discr_optimizer],
-                                         scalers=[gen_scaler, discr_scaler],
-                                         lr_schedulers=[gen_lr_scheduler, discr_lr_scheduler],
+                                         model=[gen_model, discr_model],
+                                         criterion=[perception_criterion, adversarial_criterion],
+                                         optimizer=[gen_optimizer, discr_optimizer],
+                                         scaler=[gen_scaler, discr_scaler],
+                                         lr_scheduler=[gen_lr_scheduler, discr_lr_scheduler],
                                          i_epoch=epoch)
 
                 if gl < best_loss:
@@ -74,12 +81,13 @@ class GANTrainer(Trainer):
 
         torch.cuda.empty_cache()
 
-    def train_step(self, data, models, optimizers, lr_schedulers, criterions, i_epoch, scalers) -> (float, float):
+    def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler,
+                   model_profile=False) -> (float, float):
         # models, scalers, optimizers, lr_schedulers contain two objects:
         # for generator(index 0) and discriminator(index 1)
         # criterions: perception_loss(index 0) and adversarial_loss(index 1)
-        models[0].train()
-        models[1].train()
+        model[0].train()
+        model[1].train()
         pbar = tqdm(enumerate(data), total=len(data))
         gen_epoch_loss = 0.0
         discr_epoch_loss = 0.0
@@ -88,35 +96,38 @@ class GANTrainer(Trainer):
             hr_imgs = hr_imgs.to(self.device, non_blocking=True)
 
             with torch.cuda.amp.autocast(enabled=self.cfg['amp']):
-                gen_imgs = models[0](lr_imgs)
-                gen_labels = models[1](gen_imgs)
+                gen_imgs = model[0](lr_imgs)
+                gen_labels = model[1](gen_imgs)
 
-                perception_loss = criterions[0](gen_imgs, hr_imgs)
-                adversarial_loss = criterions[1](gen_labels, torch.ones_like(gen_labels))
+                perception_loss = criterion[0](gen_imgs, hr_imgs)
+                adversarial_loss = criterion[1](gen_labels, torch.ones_like(gen_labels))
                 perceptual_loss = perception_loss + self.cfg['beta'] * adversarial_loss
 
             gen_epoch_loss += perceptual_loss.item()
-            scalers[0].scale(perceptual_loss).backward()
+            scaler[0].scale(perceptual_loss).backward()
             if (i + 1) % self.cfg['accumulation_steps'] == 0:
-                scalers[0].step(optimizers[0])
-                scalers[0].update()
-                lr_schedulers[0].step()
-                optimizers[0].zero_grad(set_to_none=True)
+                scaler[0].step(optimizer[0])
+                scaler[0].update()
+                lr_scheduler[0].step()
+                optimizer[0].zero_grad(set_to_none=True)
 
             with torch.cuda.amp.autocast(enabled=self.cfg['amp']):
-                hr_labels = models[1](hr_imgs)
-                gen_labels = models[1](gen_imgs.detach())
+                hr_labels = model[1](hr_imgs)
+                gen_labels = model[1](gen_imgs.detach())
 
-                adversarial_loss = criterions[1](gen_labels, torch.zeros_like(gen_labels)) + \
-                                   criterions[1](hr_labels, torch.ones_like(hr_labels))
+                adversarial_loss = criterion[1](gen_labels, torch.zeros_like(gen_labels)) + \
+                                   criterion[1](hr_labels, torch.ones_like(hr_labels))
 
             discr_epoch_loss += adversarial_loss.item()
-            scalers[1].scale(adversarial_loss).backward()
+            scaler[1].scale(adversarial_loss).backward()
             if (i + 1) % self.cfg['accumulation_steps'] == 0:
-                scalers[1].step(optimizers[1])
-                scalers[1].update()
-                lr_schedulers[1].step()
-                optimizers[1].zero_grad(set_to_none=True)
+                scaler[1].step(optimizer[1])
+                scaler[1].update()
+                lr_scheduler[1].step()
+                optimizer[1].zero_grad(set_to_none=True)
+
+            if model_profile:
+                break
 
             pbar.set_description(
                 f"[{i_epoch + 1}/{self.cfg['epochs']}] Loss_D: {discr_epoch_loss/(pbar.n+1):.5f} "

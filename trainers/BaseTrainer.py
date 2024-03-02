@@ -1,8 +1,7 @@
-import cv2
-
 from torch import optim, cuda
 from torch.utils.data import DataLoader
 from datasetCustom import SRDataset
+from torch.profiler import profile, ProfilerActivity
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -19,8 +18,16 @@ class Trainer:
     def train_loop(self) -> None:
         pass
 
-    def train_step(self, data, model, optimizer, lr_scheduler, criterion, i_epoch, scaler) -> float or (float, float):
+    def train_step(self, data, model, optimizer, lr_scheduler, criterion,
+                   i_epoch, scaler, model_profile: bool = False) -> float or (float, float):
         pass
+
+    def profile_one_batch(self, data, model, optimizer, lr_scheduler, criterion, scaler) -> None:
+        print('Profile model')
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True) as prof:
+            self.train_step(data=data, model=model, optimizer=optimizer, lr_scheduler=lr_scheduler,
+                            criterion=criterion, scaler=scaler, i_epoch=None, model_profile=True)
+        print(prof.key_averages().table(row_limit=30))
 
     def run(self) -> None:
         self.train_loop()
@@ -42,6 +49,7 @@ class Trainer:
         return transf
 
     def init_dataloaders(self) -> DataLoader:
+        print("Dataloader initialization...")
         dataset = SRDataset(root_dir=self.cfg['data_path_train'],
                             dir_in=self.cfg['train_in_dir'],
                             dir_out=self.cfg['train_out_dir'],
@@ -56,6 +64,7 @@ class Trainer:
 
     def init_optimizer(self, model) -> optim.Optimizer:
         algorithm = self.cfg['opt_algo'].lower()
+        print(f"{algorithm} optimizer initialization...")
         if model.__class__.__name__ == 'Discriminator':
             lr_key = 'discr_lr'
             wd_key = 'discr_weight_decay'
@@ -83,6 +92,7 @@ class Trainer:
 
     def init_lr_scheduler(self, optimizer: optim.Optimizer) -> optim.lr_scheduler:
         lr_scheduler = self.cfg['sched_type'].lower()
+        print(f"{lr_scheduler} learning rate scheduler initialization...")
         if lr_scheduler == "steplr":
             scheduler = optim.lr_scheduler.StepLR(optimizer,
                                                   step_size=self.cfg['lr_step'],
