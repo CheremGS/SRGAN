@@ -5,6 +5,7 @@ from torch.profiler import profile, ProfilerActivity
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+from utils import global_seed
 
 
 class Trainer:
@@ -30,6 +31,7 @@ class Trainer:
         print(prof.key_averages().table(row_limit=30))
 
     def run(self) -> None:
+        global_seed(determ=self.cfg['deterministic'])
         self.train_loop()
 
     def transforms_init(self) -> list:
