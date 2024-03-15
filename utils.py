@@ -38,6 +38,7 @@ def empty_cache():
 
 def save_plot_hist(hist: list, plot_name: str) -> None:
     label = os.path.basename(plot_name)[:-4]
+    plt.figure(figsize=(14, 6))
     plt.plot(np.arange(len(hist)), np.array(hist), label=label)
 
     plt.xticks(np.arange(len(hist)), np.arange(len(hist)))

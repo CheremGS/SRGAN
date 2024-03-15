@@ -15,27 +15,27 @@ image_base_resolution: 128
 epochs: 300
 batch_size: 4
 workers: 4
-accumulation_steps: 2
+accumulation_steps: 1
 save_dir: '../runs'
 save_run_name: 'run'
 
 # gan model train
 pretrain_gen_net: '../runs/best_pretrain/SRresnet16_2upscale.pth'
-discr_lr: 1.0e-4
+discr_lr: 5.0e-4
 discr_weight_decay: 0.000001
 
 # optim hyperparameters
 opt_algo: "AdamW"
-lr: 1.0e-4
+lr: 5.0e-4
 weight_decay: 0.000001
 momentum: 0.9
 
 # lr_scheduler
 sched_type: 'explr'
 lr_step: 5
-lr_gamma: 9.3e-1
+lr_gamma: 1.0e-1
 lr_min: 1.0e-20
-cosine_lr_period: 25
+cosine_lr_period: 50
 
 # model hyperparams
 upscale_factor: 2

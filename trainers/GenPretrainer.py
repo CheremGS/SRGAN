@@ -41,12 +41,7 @@ class GeneratorTrainer(Trainer):
         train_hist = []
 
         try:
-            self.profile_one_batch(model=gen_model,
-                                   optimizer=optimizer,
-                                   lr_scheduler=lr_scheduler,
-                                   criterion=pixel_mse,
-                                   data=dataloader,
-                                   scaler=scaler)
+            self.model_summary(model=gen_model)
             print('Model train process')
             for epoch in range(self.cfg['epochs']):
                 avg_losses = self.train_step(model=gen_model,

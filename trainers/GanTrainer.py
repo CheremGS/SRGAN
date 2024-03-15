@@ -45,12 +45,8 @@ class GANTrainer(Trainer):
         gen_train_hist = []
 
         try:
-            self.profile_one_batch(data=dataloader,
-                                   model=[gen_model, discr_model],
-                                   criterion=[perception_criterion, adversarial_criterion],
-                                   optimizer=[gen_optimizer, discr_optimizer],
-                                   scaler=[gen_scaler, discr_scaler],
-                                   lr_scheduler=[gen_lr_scheduler, discr_lr_scheduler])
+            self.model_summary(model=gen_model)
+            self.model_summary(model=discr_model)
             print('Model train process')
             for epoch in range(self.cfg['epochs']):
                 gl, dl = self.train_step(data=dataloader,

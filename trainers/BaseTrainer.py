@@ -1,7 +1,9 @@
+import torch
 from torch import optim, cuda
 from torch.utils.data import DataLoader
 from datasetCustom import SRDataset
 from torch.profiler import profile, ProfilerActivity
+from torchinfo import summary
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -23,12 +25,9 @@ class Trainer:
                    i_epoch, scaler, model_profile: bool = False) -> float or (float, float):
         pass
 
-    def profile_one_batch(self, data, model, optimizer, lr_scheduler, criterion, scaler) -> None:
-        print('Profile model')
-        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True) as prof:
-            self.train_step(data=data, model=model, optimizer=optimizer, lr_scheduler=lr_scheduler,
-                            criterion=criterion, scaler=scaler, i_epoch=None, model_profile=True)
-        print(prof.key_averages().table(row_limit=30))
+    def model_summary(self, model) -> None:
+        model_input = (self.cfg['batch_size'], 3, self.cfg['image_base_resolution'], self.cfg['image_base_resolution'])
+        summary(model, input_size=model_input)
 
     def run(self) -> None:
         global_seed(determ=self.cfg['deterministic'])

@@ -1,3 +1,7 @@
+### Description
+* Run model train via trainers/modelTrainRun.py file with according mode
+* Run test via modelTester.py file
+
 ### Implemented features
 - Trainers for pretrain generator model and GAN 
 - Loggers for generator pretrain and GAN train
@@ -9,7 +13,6 @@
 
 
 #### ToDo:
-- Implement thop: count params, layers, flops
-- Advanced clean cuda cache (https://www.youtube.com/watch?v=6rWrKGH6suo)
-- Implement pytorch profiler
-- Implement new gan model and approach
+- Implement new gan model or approach
+- Implement run train/test from console
+- Calculate inference time
