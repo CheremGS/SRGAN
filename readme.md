@@ -11,8 +11,7 @@
 - Configuration with yaml file
 - Save train runs info in various folders 
 
+### ToDo
 
-#### ToDo:
-- Implement new gan model or approach
-- Implement run train/test from console
-- Calculate inference time
+- Add ColorJitter augs
+- Test model analysis

@@ -127,13 +127,11 @@ def img_padding(img1:np.array, img2:np.array):
 
 
 def quadra_imshow_cv(pics: dict) -> None:
-    assert pics['target_pic'].shape == pics['interpolate_pic'].shape == pics['gan_pic'].shape, \
+    ps = list(pics.values())
+    assert ps[1].shape == ps[2].shape == ps[3].shape, \
             'Models outputs and target image have different sizes'
 
-    img_input = pics['input_pic']
-    img_target = pics['target_pic']
-    img_model1 = pics['interpolate_pic']
-    img_model2 = pics['gan_pic']
+    img_input, img_target, img_model1, img_model2 = ps
 
     x_adds, y_adds = img_padding(img_input, img_target)
     in_out_img_pic = img_concat_cv(img1=img_target, img2=img_input, y_pad=y_adds, x_pad=x_adds)
@@ -142,16 +140,16 @@ def quadra_imshow_cv(pics: dict) -> None:
 
     caption_shift = 20
 
-    quadra_pic = cv2.putText(quadra_pic, 'input', (quadra_pic.shape[1] // 2 + caption_shift,
+    quadra_pic = cv2.putText(quadra_pic, list(pics.keys())[0], (quadra_pic.shape[1] // 2 + caption_shift,
                                                    caption_shift),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-    quadra_pic = cv2.putText(quadra_pic, 'target', (caption_shift,
+    quadra_pic = cv2.putText(quadra_pic, list(pics.keys())[1], (caption_shift,
                                                     caption_shift),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-    quadra_pic = cv2.putText(quadra_pic, 'interpolation', (caption_shift,
+    quadra_pic = cv2.putText(quadra_pic, list(pics.keys())[2], (caption_shift,
                                                            quadra_pic.shape[1] // 2 + caption_shift),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-    quadra_pic = cv2.putText(quadra_pic, 'gan', (quadra_pic.shape[1] // 2 + caption_shift,
+    quadra_pic = cv2.putText(quadra_pic, list(pics.keys())[3], (quadra_pic.shape[1] // 2 + caption_shift,
                                                  quadra_pic.shape[1] // 2 + caption_shift),
                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 

@@ -28,7 +28,7 @@ class SRDataset(Dataset):
 
         for i in range(len(self.transforms)):
             if self.transforms[i] is None:
-                self.transforms[i] = A.Compose([
+                self.transforms[i] = A.Compose([# A.ColorJitter(p=0.5),
                                                 A.Normalize(max_pixel_value=255.,
                                                             mean=(0, 0, 0),
                                                             std=(1, 1, 1)),
