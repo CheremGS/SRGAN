@@ -1,11 +1,12 @@
+import torch
 from skimage.metrics import structural_similarity as ssim
 from SRGAN_model import *
 from interpolators import Interpolator
 from utils import yaml_read, transforms_init, quadra_imshow_cv
 from datasetCustom import SRDataset
 from imgLoss import PerceptionLoss
-import time
 import pandas as pd
+from tqdm import tqdm
 
 from time import perf_counter
 from contextlib import contextmanager
@@ -73,78 +74,101 @@ def models_out_comparison(test_phase: str, model1_type: str, model2_type: str, c
                     dir_out=cfg['test_out_dir'],
                     transforms=transforms_init(cfg=cfg))
 
-    test_res = []
-    loss = PerceptionLoss(num_feature_layer=cfg['num_vgg_layer_mse'], device='cpu')
+    if test_phase == "count_stats":
+        test_res = []
+        loss = PerceptionLoss(num_feature_layer=cfg['num_vgg_layer_mse'], device='cpu')
+        for op in tqdm(iter(obj), desc='Test process', total=len(obj)):
+            inp, out = op
+            numpy_output = out.permute(1, 2, 0).numpy()
+            numpy_input = inp.permute(1, 2, 0).numpy()
 
-    for op in iter(obj):
-        inp, out = op
-        target_pic = out.permute(1, 2, 0).numpy()
+            model1_out, _ = model_inference(model=model1,
+                                             inp=inp[None, ...] if model1_type in gen_types else numpy_input,
+                                             stats_inference_mode=True)
+            model2_out, _ = model_inference(model=model2,
+                                             inp=inp[None, ...] if model2_type in gen_types else numpy_input,
+                                             stats_inference_mode=True)
 
-        if model1_type in gen_types:
-            with torch.no_grad():
-                with catchtime() as t1:
-                    model1_out = model1(inp[None, ...])
-            model1_out = model1_out[0].permute(1, 2, 0).numpy()
-        else:
-            with catchtime() as t1:
-                model1_out = model1(inp.permute(1, 2, 0).numpy())
+            l1 = loss(out[None, ...], model1_out if model1_type in gen_types else torch.from_numpy(model1_out).permute(2, 0, 1)[None, ...])
+            l2 = loss(out[None, ...], model2_out if model2_type in gen_types else torch.from_numpy(model2_out).permute(2, 0, 1)[None, ...])
 
-        if model2_type in gen_types:
-            with torch.no_grad():
-                with catchtime() as t2:
-                    model2_out = model2(inp[None, ...])
-            model2_out = model2_out[0].permute(1, 2, 0).numpy()
+            if model1_type in gen_types:
+                model1_out = model1_out[0].permute(1, 2, 0).numpy()
+            if model2_type in gen_types:
+                model2_out = model2_out[0].permute(1, 2, 0).numpy()
 
-        else:
-            with catchtime() as t2:
-                model2_out = model2(inp.permute(1, 2, 0).numpy())
+            test_res.append([psnr(numpy_output, model1_out),
+                             psnr(numpy_output, model2_out),
+                             ssim(numpy_output, model1_out, multichannel=True).flat.base.item(),
+                             ssim(numpy_output, model2_out, multichannel=True).flat.base.item(),
+                             l1,
+                             l2])
 
-        if test_phase == "show_res":
-            ind_col_width = 16
-            col_width = 14
-            float_degree_round = 8
+            img_paths = obj.imgs_out
+            columns = [
+                       f'{model1_type}_psnr', f'{model2_type}_psnr',
+                       f'{model1_type}_ssim', f'{model2_type}_ssim',
+                       f'{model1_type}_loss', f'{model2_type}_loss'
+                       ]
+        test_res = np.array(test_res)
+        res_df = pd.DataFrame(test_res, columns=columns, index=img_paths)
+        res_df.to_csv('./test.csv')
+
+    elif test_phase == "show_res":
+        ind_col_width = 16
+        col_width = 14
+        float_degree_round = 8
+
+        for op in iter(obj):
+            inp, out = op
+            numpy_output = out.permute(1, 2, 0).numpy()
+            numpy_input = inp.permute(1, 2, 0).numpy()
+
+            model1_out, t1 = model_inference(model=model1,
+                                            inp=inp[None, ...] if model1_type in gen_types else numpy_input,
+                                            stats_inference_mode=False)
+            model2_out, t2 = model_inference(model=model2,
+                                            inp=inp[None, ...] if model2_type in gen_types else numpy_input,
+                                            stats_inference_mode=False)
+
+            if model1_type in gen_types:
+                model1_out = model1_out[0].permute(1, 2, 0).numpy()
+            if model2_type in gen_types:
+                model2_out = model2_out[0].permute(1, 2, 0).numpy()
+
             print(f"|{'Models':{ind_col_width}}|{model1_type:{col_width}}|{model2_type:{col_width}}|")
             print('='*(ind_col_width+col_width+col_width+4))
             print(f"|{'Inference time':{ind_col_width}}|{round(t1(), float_degree_round):{col_width}}|"
                   f"{round(t2(), float_degree_round):{col_width}}|")
-            print(f"|{'PSNR':{ind_col_width}}|{round(psnr(target_pic, model1_out), float_degree_round):{col_width}}|"
-                  f"{round(psnr(target_pic, model2_out), float_degree_round):{col_width}}|")
+            print(f"|{'PSNR':{ind_col_width}}|{round(psnr(numpy_output, model1_out), float_degree_round):{col_width}}|"
+                  f"{round(psnr(numpy_output, model2_out), float_degree_round):{col_width}}|")
             print(f"|{'SSIM':{ind_col_width}}|"
-                  f"{round(ssim(target_pic, model1_out, multichannel=True).flat.base.item(), float_degree_round):{col_width}}|"
-                  f"{round(ssim(target_pic, model2_out, multichannel=True).flat.base.item(), float_degree_round):{col_width}}|")
+                  f"{round(ssim(numpy_output, model1_out, multichannel=True).flat.base.item(), float_degree_round):{col_width}}|"
+                  f"{round(ssim(numpy_output, model2_out, multichannel=True).flat.base.item(), float_degree_round):{col_width}}|")
             print('='*(ind_col_width+col_width+col_width+4)+'\n')
 
             pic_caption = {'input_pic': inp.permute(1, 2, 0).numpy(),
-                           'target_pic': target_pic,
+                           'target_pic': numpy_output,
                            model1_type: model1_out,
                            model2_type: model2_out}
 
             quadra_imshow_cv(pic_caption)
 
+
+def model_inference(model: object, inp: torch.Tensor, stats_inference_mode: bool):
+    with torch.no_grad():
+        if not stats_inference_mode:
+            with catchtime() as t:
+                model_out = model(inp)
         else:
-
-            test_res.append([t1(), t2(), psnr(target_pic, model1_out), psnr(target_pic, model2_out),
-                             ssim(target_pic, model1_out, multichannel=True).flat.base.item(),
-                             ssim(target_pic, model2_out, multichannel=True).flat.base.item(),
-                             # loss(target_pic, model1_out),
-                             # loss(target_pic, model2_out)
-                             ])
-
-    else:
-        if test_phase == "count_stats":
-            img_paths = obj.imgs_out
-            columns = [f'{model1_type}_time', f'{model2_type}_time',
-                       f'{model1_type}_psnr', f'{model2_type}_psnr',
-                       f'{model1_type}_ssim', f'{model2_type}_ssim',
-                       # f'{model1_type}_loss', f'{model2_type}_loss'
-                       ]
-            test_res = np.array(test_res)
-            res_df = pd.DataFrame(test_res, columns=columns, index=img_paths)
-            res_df.to_csv('./test.csv')
+            t = None
+            model_out = model(inp)
+    return model_out, t
 
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     train_config = yaml_read(yaml_path='trainers/config.yaml')
 
-    models_out_comparison(test_phase="count_stats", model1_type='gan', model2_type='interpolation', cfg=train_config)
+    test_phase = "show_res" # "show_res" or "count_stats"
+    models_out_comparison(test_phase=test_phase, model1_type='gan', model2_type='interpolation', cfg=train_config)
