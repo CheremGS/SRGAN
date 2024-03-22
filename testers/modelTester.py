@@ -59,14 +59,14 @@ def models_out_comparison(test_phase: str, model1_type: str, model2_type: str, c
         model1 = custom_interpolation_load(model_type=model1_type,
                                            super_resolution=cfg['image_super_resolution'])
     else:
-        model1 = custom_generator_load(generator_path=r'runs/the_pretty_one/SRGAN_16blocks_2x.pth',
+        model1 = custom_generator_load(generator_path=r'../runs/the_pretty_one/SRGAN_16blocks_2x.pth',
                                        device='cpu')
 
     if model2_type in interpolation_types:
         model2 = custom_interpolation_load(model_type=model2_type,
                                            super_resolution=cfg['image_super_resolution'])
     else:
-        model2 = custom_generator_load(generator_path=r'runs/the_pretty_one/SRGAN_16blocks_2x.pth',
+        model2 = custom_generator_load(generator_path=r'../runs/the_pretty_one/SRGAN_16blocks_2x.pth',
                                        device='cpu')
 
     obj = SRDataset(root_dir=cfg['data_path_test'],
@@ -168,7 +168,7 @@ def model_inference(model: object, inp: torch.Tensor, stats_inference_mode: bool
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
-    train_config = yaml_read(yaml_path='trainers/config.yaml')
+    train_config = yaml_read(yaml_path='../trainers/config.yaml')
 
     test_phase = "show_res" # "show_res" or "count_stats"
     models_out_comparison(test_phase=test_phase, model1_type='gan', model2_type='interpolation', cfg=train_config)
